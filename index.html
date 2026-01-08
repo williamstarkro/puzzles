@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MATHDLE // Mathematical Wordle Variations</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Landing / Game Selector -->
+    <div id="game-selector" class="active">
+        <header class="site-header">
+            <div class="header-left">
+                <h1 class="site-title">MATHDLE</h1>
+                <span class="site-subtitle">Mathematical Wordle Variations</span>
+            </div>
+            <div class="header-right">
+                <span class="header-meta">v3.0</span>
+                <span class="header-meta" id="puzzle-day"></span>
+            </div>
+        </header>
+
+        <nav class="category-nav">
+            <button class="category-btn active" data-category="all">ALL [11]</button>
+            <button class="category-btn" data-category="number-theory">NUMBER THEORY</button>
+            <button class="category-btn" data-category="combinatorics">COMBINATORICS</button>
+            <button class="category-btn" data-category="geometry">GEOMETRY</button>
+            <button class="category-btn" data-category="graph-theory">GRAPH THEORY</button>
+            <button class="category-btn" data-category="algebra">ALGEBRA</button>
+        </nav>
+
+        <main class="game-grid" id="game-grid">
+            <!-- Games will be dynamically inserted here -->
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-left">
+                <span class="footer-text">Daily puzzles regenerate at midnight UTC</span>
+            </div>
+            <div class="footer-right">
+                <span class="footer-link" id="stats-link">STATS</span>
+                <span class="footer-link" id="about-link">ABOUT</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Game View -->
+    <div id="game-view">
+        <header class="game-header">
+            <button class="back-btn" id="back-button">
+                <span class="back-arrow">&larr;</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="game-title-section">
+                <h2 class="game-name" id="game-name">PRIMAL</h2>
+                <span class="game-day" id="game-day">#127</span>
+            </div>
+            <div class="game-header-actions">
+                <button class="icon-btn" id="settings-button" title="Settings" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="help-button" title="Help">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="game-stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">STREAK</span>
+                <span class="stat-value" id="streak-count">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">WIN RATE</span>
+                <span class="stat-value" id="win-rate">--</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">MODE</span>
+                <span class="stat-value" id="game-mode">STANDARD</span>
+            </div>
+        </div>
+
+        <main class="game-main">
+            <div class="game-container" id="game-container">
+                <!-- Game-specific UI rendered here -->
+            </div>
+            <div class="game-controls" id="game-controls">
+                <!-- Game-specific controls rendered here -->
+            </div>
+        </main>
+
+        <div class="share-section hidden" id="share-section">
+            <div class="share-result" id="share-result"></div>
+            <button class="share-btn" id="share-button">COPY RESULT</button>
+        </div>
+    </div>
+
+    <!-- Reference Modal -->
+    <div class="modal hidden" id="reference-modal">
+        <div class="modal-content reference-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="reference-title">Reference Guide</h3>
+                <button class="modal-close" id="reference-close">&times;</button>
+            </div>
+            <div class="modal-body" id="reference-body">
+                <!-- Reference content rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div class="modal hidden" id="tutorial-modal">
+        <div class="modal-content tutorial-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="tutorial-title">Welcome!</h3>
+                <p class="modal-subtitle" id="tutorial-subtitle"></p>
+            </div>
+            <div class="modal-body" id="tutorial-body">
+                <!-- Tutorial steps rendered here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="tutorial-skip">Skip</button>
+                <button class="btn btn-primary" id="tutorial-next">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div class="modal hidden" id="stats-modal">
+        <div class="modal-content stats-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Statistics</h3>
+                <button class="modal-close" id="stats-close">&times;</button>
+            </div>
+            <div class="modal-body" id="stats-body">
+                <!-- Stats rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal hidden" id="settings-modal">
+        <div class="modal-content settings-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+                <button class="modal-close" id="settings-close">&times;</button>
+            </div>
+            <div class="modal-body" id="settings-body">
+                <!-- Settings rendered here by each game -->
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal hidden" id="about-modal">
+        <div class="modal-content about-content">
+            <div class="modal-header">
+                <h3 class="modal-title">About MATHDLE</h3>
+                <button class="modal-close" id="about-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="about-text">
+                    MATHDLE is a collection of 11 mathematical puzzle games, each inspired by the
+                    deduction mechanics of Wordle but applied to different mathematical structures.
+                </p>
+                <div class="about-section">
+                    <h4>Design Principles</h4>
+                    <ul class="about-list">
+                        <li><strong>No Dominant Strategy</strong> - Multiple valid approaches</li>
+                        <li><strong>Partial Information</strong> - Each query narrows but doesn't determine</li>
+                        <li><strong>Mental Tractability</strong> - Humans can compete without calculators</li>
+                        <li><strong>Skill Gradient</strong> - Easy to play, hard to master</li>
+                    </ul>
+                </div>
+                <div class="about-section">
+                    <h4>Categories</h4>
+                    <div class="about-categories">
+                        <span class="category-tag">NUMBER THEORY</span>
+                        <span class="category-tag">COMBINATORICS</span>
+                        <span class="category-tag">GEOMETRY</span>
+                        <span class="category-tag">GRAPH THEORY</span>
+                        <span class="category-tag">ALGEBRA</span>
+                    </div>
+                </div>
+                <p class="about-footer">
+                    Mathematical Elegance Meets Playful Precision
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="scripts/app.js"></script>
+</body>
+</html>
