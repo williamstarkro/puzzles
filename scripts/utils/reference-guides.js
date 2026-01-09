@@ -8,61 +8,64 @@ export const REFERENCE_GUIDES = {
         title: 'Edit - Reference Guide',
         content: `
             <h3>How to Play</h3>
-            <p>Find a hidden 5-letter word using only edit distance feedback. No colors, no positional hints—just a single number telling you how "far" your guess is.</p>
+            <p>Find a hidden 5-letter word using distance feedback. No colors, no positional hints—just numbers telling you how "far" your guess is.</p>
 
-            <h3>Core Mechanics</h3>
+            <h3>Game Modes</h3>
+            <p>Choose your distance metric in Settings:</p>
             <ul>
-                <li>Submit any valid 5-letter word as a guess</li>
-                <li>Receive the <strong>Levenshtein edit distance</strong>: minimum edits (insert, delete, substitute) to transform your guess into the target</li>
+                <li><strong>Standard</strong>: Classic Levenshtein edit distance (8 guesses)</li>
+                <li><strong>Hard</strong>: Same as Standard but only 6 guesses</li>
+                <li><strong>Clockwork</strong>: Cyclic alphabet distance with magnitude + spin</li>
+                <li><strong>Residue</strong>: Cyclic distance mod 13 (ambiguous!)</li>
+                <li><strong>Primes</strong>: Position-weighted by primes (2, 3, 5, 7, 11)</li>
+                <li><strong>Torus</strong>: Euclidean distance on circular alphabet</li>
+            </ul>
+
+            <h3>Standard/Hard Mode (Levenshtein)</h3>
+            <ul>
+                <li>Distance = minimum edits (insert, delete, substitute) to transform guess → target</li>
                 <li>Distance 0 = exact match = win!</li>
-                <li>You have 8 guesses to find the word</li>
+                <li><strong>Key insight</strong>: Distance 5 means ALL letters are wrong at their positions</li>
             </ul>
 
-            <h3>Example</h3>
-            <p>Target: GHOST (hidden)</p>
+            <h3>Clockwork Mode</h3>
             <ul>
-                <li>CRANE → Distance 5 (very far)</li>
-                <li>TOAST → Distance 2 (close! shares _O_ST)</li>
-                <li>ROAST → Distance 2 (also 2...)</li>
-                <li>GHOST → Distance 0 (WIN!)</li>
+                <li>Alphabet wraps: A→B→...→Z→A (like a clock)</li>
+                <li><strong>Magnitude</strong>: Total arc distance across all 5 positions</li>
+                <li><strong>Spin</strong>: Net rotation (+ = clockwise, − = counter-clockwise)</li>
+                <li>Example: A→C = +2 (clockwise), A→Y = −2 (counter-clockwise shorter)</li>
             </ul>
+
+            <h3>Residue Mode</h3>
+            <ul>
+                <li>Shows cyclic distance mod 13</li>
+                <li><strong>Ambiguous</strong>: Distance 0 could mean 0, 13, 26, or 39 actual distance!</li>
+                <li>Forces probabilistic reasoning—multiple targets consistent with feedback</li>
+            </ul>
+
+            <h3>Primes Mode</h3>
+            <ul>
+                <li>Cyclic letter distance weighted by position: 2×, 3×, 5×, 7×, 11×</li>
+                <li>Last positions matter most! Position 5 is weighted 11×</li>
+                <li>Use this to prioritize which letters to fix first</li>
+            </ul>
+
+            <h3>Torus Mode</h3>
+            <ul>
+                <li>Euclidean distance: √(d₁² + d₂² + d₃² + d₄² + d₅²)</li>
+                <li>Each dᵢ is cyclic distance at position i</li>
+                <li>Large errors in one position dominate (squared)</li>
+            </ul>
+
+            <h3>Letter Tracker</h3>
+            <p>When you get distance 5 in Standard/Hard mode, all letters are marked as eliminated at their positions. Watch for the Letter Tracker panel to see which letters are ruled out where!</p>
 
             <h3>Strategy Tips</h3>
             <ul>
-                <li><strong>Start broad</strong>: Common words like SLATE or CRANE establish a baseline</li>
+                <li><strong>Start broad</strong>: Words like SLATE or CRANE test common letters</li>
                 <li><strong>Triangulate</strong>: Two distance readings constrain possibilities</li>
-                <li><strong>Cluster hop</strong>: If distances stay high (4-5), try a very different word</li>
-                <li><strong>Endgame</strong>: At distance 1-2, think about what single edits produce real words</li>
-            </ul>
-        `
-    },
-
-    network: {
-        title: 'Network - Reference Guide',
-        content: `
-            <h3>How to Play</h3>
-            <p>Find a target node in a hidden graph with fog of war. In Standard/Hard modes, the target may move after each ping!</p>
-
-            <h3>Core Mechanics</h3>
-            <ul>
-                <li>Start with one visible node (not the target)</li>
-                <li>Ping a node to learn its distance from target</li>
-                <li>Pinging reveals nodes within distance 2</li>
-                <li><strong>Moving target</strong>: After each ping, target may move to an adjacent node</li>
-            </ul>
-
-            <h3>Difficulty Modes</h3>
-            <ul>
-                <li><strong>Easy</strong>: Static target (pure triangulation)</li>
-                <li><strong>Standard</strong>: 40% chance to move, you're notified when it moves</li>
-                <li><strong>Hard</strong>: 50% chance to move, movement is hidden</li>
-            </ul>
-
-            <h3>Strategy Tips</h3>
-            <ul>
-                <li><strong>Easy mode</strong>: Triangulate using distance readings</li>
-                <li><strong>Moving modes</strong>: Corral the target by pinging "bridge" nodes to cut off escape routes</li>
-                <li>Balance exploration (reveal graph) vs. exploitation (find target)</li>
+                <li><strong>Distance 5</strong>: Great info! Eliminates 5 letter-position pairs</li>
+                <li><strong>Cyclic modes</strong>: Think about alphabet neighbors (T is near S and U)</li>
             </ul>
         `
     },
@@ -130,52 +133,59 @@ export const REFERENCE_GUIDES = {
             <h3>How to Play</h3>
             <p>Deduce a hidden permutation by probing with test permutations and observing the cycle type of the composition.</p>
 
+            <h3>What is a Permutation?</h3>
+            <p>A permutation rearranges elements. For example, on {1,2,3,4,5}:</p>
+            <ul>
+                <li><strong>Identity</strong>: 1→1, 2→2, 3→3, 4→4, 5→5 (nothing moves)</li>
+                <li><strong>(1 2)</strong>: Swap 1↔2, others stay fixed</li>
+                <li><strong>(1 2 3)</strong>: 1→2→3→1 (a 3-cycle)</li>
+            </ul>
+
+            <h3>Cycle Notation</h3>
+            <p>Every permutation decomposes into disjoint cycles:</p>
+            <ul>
+                <li><strong>(1 3 5)(2 4)</strong>: A 3-cycle and a 2-cycle</li>
+                <li><strong>Cycle type [3,2]</strong>: Describes the structure without specific elements</li>
+                <li>Fixed points (1-cycles) are often omitted: [3,2] on 6 elements implies one fixed point</li>
+            </ul>
+
             <h3>Core Mechanics</h3>
             <ul>
-                <li>Hidden target: A permutation σ on {1,...,n}</li>
+                <li>Hidden target σ: A permutation on {1,...,n}</li>
                 <li>Submit a probe permutation τ</li>
-                <li>Learn the cycle type of τ∘σ (e.g., [3,2,1] = one 3-cycle, one 2-cycle, one fixed point)</li>
+                <li>Learn the <strong>cycle type</strong> of τ∘σ (composition: first σ, then τ)</li>
+                <li>Goal: Deduce the exact target permutation</li>
             </ul>
 
-            <h3>Key Insight</h3>
-            <p>The identity probe immediately reveals the target's own cycle type. Transposition probes test if two elements are in the same cycle.</p>
+            <h3>Key Probing Strategies</h3>
+            <ul>
+                <li><strong>Identity probe</strong>: Reveals σ's own cycle type immediately</li>
+                <li><strong>Transposition (i j)</strong>: If i,j are in same cycle of σ, the cycle splits; if in different cycles, they merge</li>
+                <li><strong>Single swap test</strong>: (1 2) on σ tells you if 1 and 2 are in the same cycle</li>
+            </ul>
+
+            <h3>Reading Results</h3>
+            <ul>
+                <li><strong>[5]</strong>: One 5-cycle (all elements in one orbit)</li>
+                <li><strong>[3,2]</strong>: A 3-cycle and a 2-cycle</li>
+                <li><strong>[2,2,1]</strong>: Two 2-cycles and one fixed point</li>
+                <li><strong>[1,1,1,1,1]</strong>: Identity (all fixed points)</li>
+            </ul>
+
+            <h3>Example Strategy</h3>
+            <ol>
+                <li>Probe identity → Learn σ has cycle type [3,2]</li>
+                <li>Probe (1 2) → If result is [4,1], then 1,2 were in different cycles (now merged)</li>
+                <li>Probe (1 3) → If result is [2,2,1], then 1,3 were in same 3-cycle (now split)</li>
+                <li>Continue to map out which elements share cycles</li>
+            </ol>
 
             <h3>Strategy Tips</h3>
             <ul>
-                <li>Start with identity to learn target's cycle structure</li>
-                <li>Use transpositions (1 2) to test cycle membership</li>
-                <li>Connecting elements from different cycles merges them</li>
-            </ul>
-        `
-    },
-
-    threshold: {
-        title: 'Threshold - Reference Guide',
-        content: `
-            <h3>How to Play</h3>
-            <p>Discover hidden voter weights by probing coalitions. Larger coalitions cost more points.</p>
-
-            <h3>Core Mechanics</h3>
-            <ul>
-                <li>5 voters with hidden positive integer weights</li>
-                <li>Threshold T (typically majority)</li>
-                <li>Query a coalition → WIN (sum ≥ T) or LOSE (sum &lt; T)</li>
-                <li>Cost scales with coalition size</li>
-            </ul>
-
-            <h3>Query Costs</h3>
-            <ul>
-                <li>1 voter: 1 point</li>
-                <li>2 voters: 2 points</li>
-                <li>3 voters: 4 points</li>
-                <li>4+ voters: increasingly expensive</li>
-            </ul>
-
-            <h3>Strategy Tips</h3>
-            <ul>
-                <li><strong>Micro approach</strong>: Many cheap singleton queries</li>
-                <li><strong>Macro approach</strong>: Few expensive coalition queries</li>
-                <li>WIN gives lower bound, LOSE gives upper bound—propagate constraints!</li>
+                <li>Start with identity to learn the cycle structure</li>
+                <li>Use transpositions systematically to discover cycle membership</li>
+                <li>Track which elements you've confirmed are in the same/different cycles</li>
+                <li>Once you know cycle membership, determine the order within each cycle</li>
             </ul>
         `
     },
@@ -202,94 +212,6 @@ export const REFERENCE_GUIDES = {
                 <li><strong>Single cell</strong>: Clean pattern, limited coverage</li>
                 <li><strong>Random IC</strong>: High coverage, complex to interpret</li>
                 <li>Rule classes: uniform (Class 1), periodic (Class 2), chaotic (Class 3), complex (Class 4)</li>
-            </ul>
-        `
-    },
-
-    convex: {
-        title: 'Convex - Reference Guide',
-        content: `
-            <h3>How to Play</h3>
-            <p>Discover a hidden convex polygon by probing with points and rays.</p>
-
-            <h3>Probe Types</h3>
-            <ul>
-                <li><strong>Point probe (cost 1)</strong>: Is (x,y) INSIDE, OUTSIDE, or on BOUNDARY?</li>
-                <li><strong>Ray probe (cost 2)</strong>: Distance from (x,y) in direction θ to boundary</li>
-            </ul>
-
-            <h3>Goal</h3>
-            <p>Identify all vertices of the hidden polygon exactly.</p>
-
-            <h3>Strategy Tips</h3>
-            <ul>
-                <li><strong>Binary search</strong>: Use inside/outside to narrow down edges</li>
-                <li><strong>Radial sweep</strong>: From inside, ray-probe in all directions</li>
-                <li>Vertices are where boundary direction changes sharply</li>
-                <li>Convexity helps: if A is inside and B is outside, the boundary is between them</li>
-            </ul>
-        `
-    },
-
-    recurrence: {
-        title: 'Recurrence - Reference Guide',
-        content: `
-            <h3>How to Play</h3>
-            <p>Deduce a hidden linear recurrence relation: aₙ = c₁·aₙ₋₁ + c₂·aₙ₋₂. You see the first 3 terms and can probe for more.</p>
-
-            <h3>Core Mechanics</h3>
-            <ul>
-                <li>You see the first 3 terms of the sequence</li>
-                <li>Probe additional terms (up to 5 probes)</li>
-                <li>Guess the coefficients [c₁, c₂] (up to 3 attempts)</li>
-                <li>Coefficients are integers from -3 to 3</li>
-            </ul>
-
-            <h3>Common Patterns</h3>
-            <ul>
-                <li><strong>[1, 1]</strong>: Fibonacci-like → ratio approaches 1.618...</li>
-                <li><strong>[2, -1]</strong>: Arithmetic sequence → constant differences</li>
-                <li><strong>[2, 0]</strong>: Geometric (×2) → exact doubling</li>
-                <li><strong>[0, -1]</strong>: Oscillating → period 4</li>
-            </ul>
-
-            <h3>The Twist</h3>
-            <p>Multiple recurrences can produce the same sequence! For example, 1, 2, 4, 8... matches both [2, 0] AND [3, -2]. The puzzle is finding the <em>hidden</em> recurrence.</p>
-
-            <h3>Strategy Tips</h3>
-            <ul>
-                <li><strong>Compute ratios</strong>: aₙ₊₁/aₙ reveals geometric behavior</li>
-                <li><strong>Compute differences</strong>: aₙ₊₁ - aₙ reveals arithmetic behavior</li>
-                <li><strong>Probe far</strong>: Large n reveals asymptotic behavior</li>
-            </ul>
-        `
-    },
-
-    bijection: {
-        title: 'Bijection - Reference Guide',
-        content: `
-            <h3>How to Play</h3>
-            <p>Discover a hidden bijection (perfect matching) between two sets by probing pairs with yes/no queries.</p>
-
-            <h3>Core Mechanics</h3>
-            <ul>
-                <li>Sets A = {a₁,...,aₙ} and B = {b₁,...,bₙ}</li>
-                <li>Hidden bijection σ: A → B</li>
-                <li>Query: "Does σ(aᵢ) = bⱼ?" → YES or NO</li>
-                <li>Find all n matches within query budget</li>
-            </ul>
-
-            <h3>Information Value</h3>
-            <ul>
-                <li><strong>YES</strong>: Highly valuable! Confirms one edge definitively</li>
-                <li><strong>NO</strong>: Less valuable, but eliminates one possibility</li>
-            </ul>
-
-            <h3>Strategy Tips</h3>
-            <ul>
-                <li>Constraint propagation: If row i is found, column j is eliminated for other rows</li>
-                <li>Look for forced moves in the endgame</li>
-                <li>Balance systematic search vs. hunting for YES answers</li>
             </ul>
         `
     },
@@ -355,5 +277,6 @@ export const REFERENCE_GUIDES = {
                 <li>Balance based on polynomial degree and budget</li>
             </ul>
         `
-    }
+    },
+
 };

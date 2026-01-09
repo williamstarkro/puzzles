@@ -162,6 +162,9 @@ export class EditGame {
         this.gameOver = false;
         this.won = false;
 
+        // Letter elimination tracking: eliminated[position] = Set of eliminated letters
+        this.eliminated = [new Set(), new Set(), new Set(), new Set(), new Set()];
+
         this.init();
     }
 
@@ -170,6 +173,9 @@ export class EditGame {
 
         // Select target word
         this.target = rng.choice(WORD_LIST);
+
+        // Reset elimination tracking
+        this.eliminated = [new Set(), new Set(), new Set(), new Set(), new Set()];
 
         this.render();
     }
@@ -223,6 +229,9 @@ export class EditGame {
 
         this.guesses.push({ word, distance });
 
+        // Update letter eliminations based on this guess
+        this.updateEliminations(word, distance);
+
         if (isWin) {
             this.won = true;
             this.gameOver = true;
@@ -239,6 +248,49 @@ export class EditGame {
         if (this.gameOver) {
             this.showShareSection();
         }
+    }
+
+    /**
+     * Update letter eliminations based on a guess and its distance.
+     * For Levenshtein: distance 5 means all letters are wrong at their positions.
+     * For cyclic modes: we can compute per-position possible ranges.
+     */
+    updateEliminations(word, distance) {
+        const type = this.config.distanceType;
+
+        if (type === 'levenshtein') {
+            // For Levenshtein: distance 5 = all letters wrong at their positions
+            // (If any letter were correct, distance would be at most 4)
+            if (distance === 5) {
+                for (let i = 0; i < 5; i++) {
+                    this.eliminated[i].add(word[i]);
+                }
+            }
+            // For distance 4: at least 4 wrong, but we can't determine which
+            // We can also eliminate if we have multiple guesses with same letter at same position
+            // and consistently high distances, but that's more complex analysis
+        } else if (type === 'clockwork' || type === 'primes' || type === 'torus') {
+            // For cyclic modes with per-position distance info,
+            // we can narrow down possibilities but it's complex.
+            // For now, we use a simpler heuristic: eliminate if magnitude is at max
+            const maxMag = type === 'clockwork' ? distance.magnitude :
+                           type === 'torus' ? distance : distance;
+            if (type === 'clockwork' && distance.magnitude >= 65) {
+                // Max possible cyclic distance (13*5=65) - all letters maximally wrong
+                for (let i = 0; i < 5; i++) {
+                    this.eliminated[i].add(word[i]);
+                }
+            }
+        }
+        // Residue mode is inherently ambiguous, so we don't eliminate letters
+    }
+
+    /**
+     * Get all letters that are still possible at a given position
+     */
+    getPossibleLetters(position) {
+        const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return allLetters.split('').filter(l => !this.eliminated[position].has(l));
     }
 
     showError(message) {
@@ -428,6 +480,16 @@ export class EditGame {
         historyBox.appendChild(historyContent);
         this.container.appendChild(historyBox);
 
+        // Letter elimination tracker (only show if there are eliminations and not game over)
+        if (!this.gameOver && this.eliminated.some(s => s.size > 0)) {
+            this.renderLetterTracker();
+        }
+
+        // Mode-specific visualizations (for cyclic modes)
+        if (!this.gameOver) {
+            this.renderModeVisualizations();
+        }
+
         // Game result
         if (this.gameOver) {
             const resultBox = createElement('div', {
@@ -461,6 +523,366 @@ export class EditGame {
 
             resultBox.appendChild(resultText);
             this.container.appendChild(resultBox);
+        }
+    }
+
+    /**
+     * Render the letter elimination tracker visualization
+     */
+    renderLetterTracker() {
+        const trackerBox = createElement('div', { className: 'game-box mb-4' });
+        const trackerHeader = createElement('div', { className: 'game-box-header' });
+        trackerHeader.appendChild(createElement('span', {
+            className: 'game-box-title',
+            textContent: 'LETTER TRACKER'
+        }));
+
+        const totalEliminated = this.eliminated.reduce((sum, s) => sum + s.size, 0);
+        trackerHeader.appendChild(createElement('span', {
+            className: 'text-mono text-xs',
+            style: 'color: var(--color-text-secondary);',
+            textContent: `${totalEliminated} eliminated`
+        }));
+
+        trackerBox.appendChild(trackerHeader);
+
+        const trackerContent = createElement('div', {
+            style: 'padding-top: var(--space-3);'
+        });
+
+        // Show 5 columns, one for each position
+        const positionsRow = createElement('div', {
+            className: 'flex justify-between gap-2',
+            style: 'margin-bottom: 8px;'
+        });
+
+        for (let pos = 0; pos < 5; pos++) {
+            const posCol = createElement('div', {
+                className: 'text-center',
+                style: 'flex: 1; min-width: 0;'
+            });
+
+            // Position label
+            const posLabel = createElement('div', {
+                className: 'text-mono text-xs',
+                style: 'color: var(--color-text-tertiary); margin-bottom: 4px;'
+            });
+            posLabel.textContent = `POS ${pos + 1}`;
+            posCol.appendChild(posLabel);
+
+            // Eliminated letters for this position
+            const eliminatedSet = this.eliminated[pos];
+            if (eliminatedSet.size > 0) {
+                const eliminatedLetters = createElement('div', {
+                    className: 'text-mono',
+                    style: `
+                        font-size: 0.7rem;
+                        color: var(--color-error);
+                        text-decoration: line-through;
+                        opacity: 0.7;
+                        word-break: break-all;
+                        line-height: 1.4;
+                    `
+                });
+                eliminatedLetters.textContent = [...eliminatedSet].sort().join('');
+                posCol.appendChild(eliminatedLetters);
+
+                // Show count remaining
+                const remaining = 26 - eliminatedSet.size;
+                const remainingLabel = createElement('div', {
+                    className: 'text-mono text-xs',
+                    style: `color: var(--color-text-tertiary); margin-top: 4px;`
+                });
+                remainingLabel.textContent = `${remaining} left`;
+                posCol.appendChild(remainingLabel);
+            } else {
+                const noData = createElement('div', {
+                    className: 'text-mono text-xs',
+                    style: 'color: var(--color-text-tertiary);'
+                });
+                noData.textContent = '—';
+                posCol.appendChild(noData);
+            }
+
+            positionsRow.appendChild(posCol);
+        }
+
+        trackerContent.appendChild(positionsRow);
+
+        // Add explanation
+        const explanation = createElement('div', {
+            className: 'text-mono text-xs text-center',
+            style: 'color: var(--color-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);'
+        });
+        explanation.textContent = 'Letters crossed out cannot appear at that position (from distance-5 guesses)';
+        trackerContent.appendChild(explanation);
+
+        trackerBox.appendChild(trackerContent);
+        this.container.appendChild(trackerBox);
+    }
+
+    /**
+     * Render position weights visualization for Primes mode
+     */
+    renderPrimesWeights() {
+        const weights = [2, 3, 5, 7, 11];
+        const maxWeight = 11;
+
+        const weightsBox = createElement('div', { className: 'game-box mb-4' });
+        const header = createElement('div', { className: 'game-box-header' });
+        header.appendChild(createElement('span', {
+            className: 'game-box-title',
+            textContent: 'POSITION WEIGHTS'
+        }));
+        weightsBox.appendChild(header);
+
+        const content = createElement('div', {
+            style: 'padding-top: var(--space-3);'
+        });
+
+        // Visual weight bars
+        const weightsRow = createElement('div', {
+            className: 'flex justify-between gap-2',
+            style: 'margin-bottom: 8px;'
+        });
+
+        weights.forEach((w, i) => {
+            const col = createElement('div', {
+                className: 'text-center',
+                style: 'flex: 1;'
+            });
+
+            // Position label
+            const posLabel = createElement('div', {
+                className: 'text-mono text-xs',
+                style: 'color: var(--color-text-tertiary); margin-bottom: 4px;'
+            });
+            posLabel.textContent = `POS ${i + 1}`;
+            col.appendChild(posLabel);
+
+            // Weight bar (visual)
+            const barContainer = createElement('div', {
+                style: `
+                    height: 24px;
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: center;
+                    margin-bottom: 4px;
+                `
+            });
+            const bar = createElement('div', {
+                style: `
+                    width: 100%;
+                    max-width: 40px;
+                    height: ${(w / maxWeight) * 100}%;
+                    background: var(--color-accent);
+                    border-radius: 2px;
+                    opacity: ${0.4 + (w / maxWeight) * 0.6};
+                `
+            });
+            barContainer.appendChild(bar);
+            col.appendChild(barContainer);
+
+            // Weight value
+            const weightVal = createElement('div', {
+                className: 'text-mono',
+                style: `font-size: 0.9rem; font-weight: bold; color: ${w === maxWeight ? 'var(--color-accent)' : 'var(--color-text-secondary)'};`
+            });
+            weightVal.textContent = `×${w}`;
+            col.appendChild(weightVal);
+
+            weightsRow.appendChild(col);
+        });
+
+        content.appendChild(weightsRow);
+
+        // Explanation
+        const explanation = createElement('div', {
+            className: 'text-mono text-xs text-center',
+            style: 'color: var(--color-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);'
+        });
+        explanation.textContent = 'Position 5 contributes 5.5× more than Position 1';
+        content.appendChild(explanation);
+
+        weightsBox.appendChild(content);
+        this.container.appendChild(weightsBox);
+    }
+
+    /**
+     * Render ambiguity display for Residue mode
+     * Shows all possible true distances given mod 13 result
+     */
+    renderResidueAmbiguity(modDistance) {
+        const ambiguityBox = createElement('div', { className: 'game-box mb-4' });
+        const header = createElement('div', { className: 'game-box-header' });
+        header.appendChild(createElement('span', {
+            className: 'game-box-title',
+            textContent: 'AMBIGUITY'
+        }));
+        ambiguityBox.appendChild(header);
+
+        const content = createElement('div', {
+            style: 'padding-top: var(--space-3);'
+        });
+
+        // Calculate all possible true distances (0 to 65, stepping by 13)
+        const maxPossible = 65; // 5 positions × 13 max cyclic distance
+        const possibleDistances = [];
+        for (let d = modDistance; d <= maxPossible; d += 13) {
+            possibleDistances.push(d);
+        }
+
+        const label = createElement('div', {
+            className: 'text-mono text-xs',
+            style: 'color: var(--color-text-tertiary); margin-bottom: 8px; text-align: center;'
+        });
+        label.textContent = 'POSSIBLE TRUE DISTANCES';
+        content.appendChild(label);
+
+        // Display possible distances with color coding
+        const distancesRow = createElement('div', {
+            className: 'flex justify-center gap-3 flex-wrap'
+        });
+
+        possibleDistances.forEach((d, i) => {
+            const distChip = createElement('span', {
+                className: 'text-mono',
+                style: `
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    background: var(--color-surface);
+                    font-weight: bold;
+                    opacity: ${1 - (i * 0.15)};
+                    color: ${i === 0 ? 'var(--color-success)' : 'var(--color-text-secondary)'};
+                    ${i === 0 ? 'border: 1px solid var(--color-success);' : ''}
+                `
+            });
+            distChip.textContent = d;
+            distancesRow.appendChild(distChip);
+        });
+
+        content.appendChild(distancesRow);
+
+        // Explanation
+        const explanation = createElement('div', {
+            className: 'text-mono text-xs text-center',
+            style: 'color: var(--color-text-tertiary); margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--color-border);'
+        });
+        explanation.textContent = `Distance ≡ ${modDistance} (mod 13) — lower values more likely`;
+        content.appendChild(explanation);
+
+        ambiguityBox.appendChild(content);
+        this.container.appendChild(ambiguityBox);
+    }
+
+    /**
+     * Render alphabet neighbors for cyclic modes
+     * Shows nearby letters for each position based on last guess
+     */
+    renderAlphabetNeighbors(word) {
+        const neighborsBox = createElement('div', { className: 'game-box mb-4' });
+        const header = createElement('div', { className: 'game-box-header' });
+        header.appendChild(createElement('span', {
+            className: 'game-box-title',
+            textContent: 'ALPHABET NEIGHBORS'
+        }));
+        header.appendChild(createElement('span', {
+            className: 'text-mono text-xs',
+            style: 'color: var(--color-text-secondary);',
+            textContent: '±3 positions (cyclic)'
+        }));
+        neighborsBox.appendChild(header);
+
+        const content = createElement('div', {
+            style: 'padding-top: var(--space-3);'
+        });
+
+        // For each position, show the neighborhood
+        const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const RANGE = 3; // Show ±3 neighbors
+
+        for (let pos = 0; pos < 5; pos++) {
+            const letter = word[pos];
+            const letterIndex = ALPHABET.indexOf(letter);
+
+            const row = createElement('div', {
+                className: 'flex items-center gap-2',
+                style: 'margin-bottom: 6px;'
+            });
+
+            // Position label
+            const posLabel = createElement('span', {
+                className: 'text-mono text-xs',
+                style: 'color: var(--color-text-tertiary); width: 45px;'
+            });
+            posLabel.textContent = `POS ${pos + 1}:`;
+            row.appendChild(posLabel);
+
+            // Neighbor letters
+            const neighborsSpan = createElement('span', {
+                className: 'text-mono',
+                style: 'font-size: 0.85rem; letter-spacing: 2px;'
+            });
+
+            let neighborsHTML = '';
+            for (let offset = -RANGE; offset <= RANGE; offset++) {
+                const neighborIndex = (letterIndex + offset + 26) % 26;
+                const neighborLetter = ALPHABET[neighborIndex];
+
+                if (offset === 0) {
+                    // Current letter - highlighted
+                    neighborsHTML += `<span style="color: var(--color-accent); font-weight: bold; padding: 2px 4px; background: var(--color-surface); border-radius: 3px;">${neighborLetter}</span>`;
+                } else {
+                    // Neighbor - dimmer based on distance
+                    const opacity = 1 - (Math.abs(offset) * 0.2);
+                    neighborsHTML += `<span style="opacity: ${opacity};">${neighborLetter}</span>`;
+                }
+
+                if (offset < RANGE) {
+                    neighborsHTML += ' ';
+                }
+            }
+            neighborsSpan.innerHTML = neighborsHTML;
+            row.appendChild(neighborsSpan);
+
+            content.appendChild(row);
+        }
+
+        // Show wrap-around hint
+        const wrapHint = createElement('div', {
+            className: 'text-mono text-xs text-center',
+            style: 'color: var(--color-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);'
+        });
+        wrapHint.textContent = 'Alphabet wraps: ...X Y Z A B C...';
+        content.appendChild(wrapHint);
+
+        neighborsBox.appendChild(content);
+        this.container.appendChild(neighborsBox);
+    }
+
+    /**
+     * Render mode-specific visualizations based on current distance type
+     */
+    renderModeVisualizations() {
+        const type = this.config.distanceType;
+
+        if (this.guesses.length === 0) return;
+
+        const lastGuess = this.guesses[this.guesses.length - 1];
+
+        // Primes mode: show position weights
+        if (type === 'primes') {
+            this.renderPrimesWeights();
+        }
+
+        // Residue mode: show ambiguity
+        if (type === 'residue') {
+            this.renderResidueAmbiguity(lastGuess.distance);
+        }
+
+        // All cyclic modes: show alphabet neighbors
+        if (['clockwork', 'residue', 'primes', 'torus'].includes(type)) {
+            this.renderAlphabetNeighbors(lastGuess.word);
         }
     }
 
