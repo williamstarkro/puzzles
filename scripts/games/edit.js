@@ -169,7 +169,9 @@ export class EditGame {
     }
 
     init() {
-        const rng = gameEngine.getRNG();
+        // Initialize with mode-specific seed so each mode has a different word
+        const gameId = `edit_${this.difficulty}`;
+        const rng = gameEngine.initGame(gameId);
 
         // Select target word
         this.target = rng.choice(WORD_LIST);

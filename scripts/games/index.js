@@ -3,7 +3,7 @@
  * All 8 mathematical Wordle variations
  */
 
-import { EditGame } from './edit.js?v=4';
+import { EditGame } from './edit.js?v=5';
 import { CipherGame } from './cipher.js';
 import { PartitionGame } from './partition.js';
 // import { RecurrenceGame } from './recurrence.js';  // TODO: Disabled - needs improvement

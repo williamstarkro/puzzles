@@ -7,7 +7,7 @@ import { gameEngine } from './game-engine.js';
 import { Storage } from './utils/storage.js';
 import { createElement, formatPercent } from './utils/ui-helpers.js';
 import { REFERENCE_GUIDES } from './utils/reference-guides.js?v=3';
-import { GAMES, getGamesByCategory, getAvailableGames } from './games/index.js?v=4';
+import { GAMES, getGamesByCategory, getAvailableGames } from './games/index.js?v=5';
 
 class App {
     constructor() {
