@@ -10,11 +10,11 @@ import { createElement } from '../utils/ui-helpers.js';
 const DIFFICULTY = {
     standard: {
         n: 6,
-        queries: 5
+        queries: 4      // σ's own cycle type is revealed for free
     },
     hard: {
         n: 7,
-        queries: 5
+        queries: 4
     }
 };
 
@@ -50,6 +50,10 @@ export class OrbitGame {
         // Generate random permutation
         const arr = Array.from({ length: n }, (_, i) => i);
         this.target = rng.shuffle([...arr]);
+
+        // The identity query was always the dominant opening, so it is given
+        // away for free: everyone starts knowing σ's cycle type.
+        this.knownCycleType = this.getCycleType(this.target);
 
         // Initialize current query as identity
         this.currentQuery = Array.from({ length: n }, (_, i) => i);
@@ -208,12 +212,21 @@ export class OrbitGame {
         }));
         statusBox.appendChild(statusHeader);
 
-        // Queries remaining
+        // Queries remaining + known cycle type
         const queriesLeft = this.config.queries - this.queryHistory.length;
-        const statusContent = createElement('div', { className: 'text-center mt-3' });
+        const statusContent = createElement('div', {
+            className: 'flex justify-between items-center mt-3',
+            style: 'gap: 16px;'
+        });
         statusContent.innerHTML = `
-            <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">QUERIES REMAINING</div>
-            <div class="text-mono" style="font-size: 2rem; color: ${queriesLeft === 0 ? 'var(--color-warning)' : 'var(--color-text)'};">${queriesLeft}</div>
+            <div class="text-center" style="flex: 1;">
+                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">QUERIES REMAINING</div>
+                <div class="text-mono" style="font-size: 2rem; color: ${queriesLeft === 0 ? 'var(--color-warning)' : 'var(--color-text)'};">${queriesLeft}</div>
+            </div>
+            <div class="text-center" style="flex: 1;">
+                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">CYCLE TYPE OF σ</div>
+                <div class="text-mono" style="font-size: 2rem; color: var(--color-accent);">${this.formatCycleType(this.knownCycleType)}</div>
+            </div>
         `;
         statusBox.appendChild(statusContent);
         this.container.appendChild(statusBox);
@@ -437,7 +450,7 @@ export class OrbitGame {
         const allQueriesUsed = this.queryHistory.length >= this.config.queries;
         hint.textContent = allQueriesUsed
             ? 'Build your guess using swaps, then click GUESS σ'
-            : 'Tip: Query identity first to see σ\'s own cycle type';
+            : 'σ\'s cycle type is given. Use transpositions to test which elements share a cycle.';
         controlGroup.appendChild(hint);
 
         this.controls.appendChild(controlGroup);
@@ -494,7 +507,7 @@ ${this.won ? `✅ Found: ${this.formatPermutation(this.target)}` : '❌ Failed'}
                         text-align: left;
                     ">
                         <div style="font-family: var(--font-mono); font-weight: 600;">STANDARD</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">n=6 (720 permutations), 5 queries</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">n=6 (720 permutations), cycle type given, 4 queries</div>
                     </button>
                     <button class="difficulty-btn ${this.difficulty === 'hard' ? 'active' : ''}" data-difficulty="hard" style="
                         padding: 12px 16px;
@@ -506,7 +519,7 @@ ${this.won ? `✅ Found: ${this.formatPermutation(this.target)}` : '❌ Failed'}
                         text-align: left;
                     ">
                         <div style="font-family: var(--font-mono); font-weight: 600;">HARD</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">n=7 (5040 permutations), 5 queries</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">n=7 (5040 permutations), cycle type given, 4 queries</div>
                     </button>
                 </div>
                 ${hasProgress ? '<p style="margin-top: 12px; font-size: 0.8rem; color: var(--color-warning);">⚠️ Changing difficulty will reset your current game</p>' : ''}

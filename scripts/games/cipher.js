@@ -1,22 +1,26 @@
 /**
  * Cipher - The Noisy Channel Game
- * Recover a hidden 5-letter word from multiple corrupted "intercepts".
+ * Recover a hidden 5-letter word from corrupted "intercepts".
+ * Intercepts and guesses share one action budget: an intercept is a noisy
+ * sample, a guess is an exact positional test. Spend wisely.
  */
 
 import { gameEngine } from '../game-engine.js';
 import { createElement } from '../utils/ui-helpers.js';
 import { WORD_LIST } from '../utils/words.js';
 
+const WORD_SET = new Set(WORD_LIST);
+
 const DIFFICULTY = {
     standard: {
         noiseLevel: 0.30,
         minCorruptions: 2,      // Guarantee at least 2 corrupted positions
-        maxIntercepts: 6
+        budget: 7               // Total actions: intercepts + guesses
     },
     hard: {
         noiseLevel: 0.40,
         minCorruptions: 3,      // Guarantee at least 3 corrupted positions
-        maxIntercepts: 5
+        budget: 6
     }
 };
 
@@ -28,10 +32,15 @@ export class CipherGame {
         this.difficulty = 'standard';
         this.config = DIFFICULTY[this.difficulty];
         this.intercepts = [];
+        this.guesses = [];          // { word, greens: [bool x5] }
         this.gameOver = false;
         this.won = false;
 
         this.init();
+    }
+
+    budgetLeft() {
+        return this.config.budget - this.intercepts.length - this.guesses.length;
     }
 
     init() {
@@ -81,7 +90,8 @@ export class CipherGame {
 
     requestIntercept() {
         if (this.gameOver) return;
-        if (this.intercepts.length >= this.config.maxIntercepts) return;
+        // The last action is always reserved for a guess
+        if (this.budgetLeft() <= 1) return;
 
         const intercept = this.generateIntercept();
         this.intercepts.push(intercept);
@@ -124,25 +134,32 @@ export class CipherGame {
 
     submitGuess(guess) {
         if (this.gameOver) return;
+        if (this.budgetLeft() <= 0) return;
 
         const normalized = guess.toUpperCase().trim();
         if (normalized.length !== 5) {
             this.showError('Enter a 5-letter word');
             return;
         }
+        if (!WORD_SET.has(normalized)) {
+            this.showError('Not in word list');
+            return;
+        }
+
+        const greens = [...normalized].map((ch, i) => ch === this.target[i]);
+        this.guesses.push({ word: normalized, greens });
 
         if (normalized === this.target) {
             this.won = true;
             this.gameOver = true;
-            gameEngine.recordResult('cipher', true, this.intercepts.length);
+            gameEngine.recordResult('cipher', true, this.intercepts.length + this.guesses.length);
             gameEngine.markCompleted('cipher');
-        } else {
+        } else if (this.budgetLeft() <= 0) {
             this.gameOver = true;
             gameEngine.recordResult('cipher', false);
             gameEngine.markCompleted('cipher');
         }
 
-        this.finalGuess = normalized;
         this.render();
 
         if (this.gameOver) {
@@ -187,12 +204,16 @@ export class CipherGame {
 
         statusContent.innerHTML = `
             <div class="text-center">
-                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">INTERCEPTS</div>
-                <div class="text-mono" style="font-size: 1.5rem;">${this.intercepts.length}/${this.config.maxIntercepts}</div>
+                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">ACTIONS LEFT</div>
+                <div class="text-mono" style="font-size: 1.5rem; color: ${this.budgetLeft() <= 2 ? 'var(--color-warning)' : 'var(--color-text)'};">${this.budgetLeft()}/${this.config.budget}</div>
             </div>
             <div class="text-center">
-                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">REMAINING</div>
-                <div class="text-mono" style="font-size: 1.5rem;">${this.config.maxIntercepts - this.intercepts.length}</div>
+                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">INTERCEPTS</div>
+                <div class="text-mono" style="font-size: 1.5rem;">${this.intercepts.length}</div>
+            </div>
+            <div class="text-center">
+                <div class="text-mono text-xs" style="color: var(--color-text-tertiary);">GUESSES</div>
+                <div class="text-mono" style="font-size: 1.5rem;">${this.guesses.length}</div>
             </div>
         `;
 
@@ -284,6 +305,48 @@ export class CipherGame {
             this.container.appendChild(consensusBox);
         }
 
+        // Guess history with exact positional feedback
+        if (this.guesses.length > 0) {
+            const guessBox = createElement('div', { className: 'game-box mb-4' });
+            const guessHeader = createElement('div', { className: 'game-box-header' });
+            guessHeader.appendChild(createElement('span', {
+                className: 'game-box-title',
+                textContent: 'TRANSMISSION TESTS'
+            }));
+            guessHeader.appendChild(createElement('span', {
+                className: 'text-mono text-xs',
+                style: 'color: var(--color-text-tertiary);',
+                textContent: 'green = confirmed position'
+            }));
+            guessBox.appendChild(guessHeader);
+
+            const guessDisplay = createElement('div', { className: 'intercept-display' });
+            this.guesses.forEach((g, idx) => {
+                const row = createElement('div', { className: 'intercept-row' });
+                const numLabel = createElement('span', {
+                    className: 'text-mono text-xs',
+                    style: 'color: var(--color-text-tertiary); width: 24px; text-align: right; margin-right: 8px; line-height: 44px;'
+                });
+                numLabel.textContent = `${idx + 1}`;
+                row.appendChild(numLabel);
+
+                for (let i = 0; i < 5; i++) {
+                    const cell = createElement('div', {
+                        className: 'intercept-letter',
+                        style: g.greens[i]
+                            ? 'background: rgba(76, 175, 80, 0.25); border-color: var(--color-success); color: var(--color-success);'
+                            : 'opacity: 0.5;'
+                    });
+                    cell.textContent = g.word[i];
+                    row.appendChild(cell);
+                }
+                guessDisplay.appendChild(row);
+            });
+
+            guessBox.appendChild(guessDisplay);
+            this.container.appendChild(guessBox);
+        }
+
         // Game result
         if (this.gameOver) {
             const resultBox = createElement('div', {
@@ -308,10 +371,7 @@ export class CipherGame {
                 `;
             } else {
                 resultText.innerHTML = `
-                    <div style="font-size: 1.5rem; margin-bottom: 8px; color: var(--color-error);">Incorrect</div>
-                    <div style="color: var(--color-text-secondary);">
-                        You guessed: <span class="text-mono">${this.finalGuess}</span>
-                    </div>
+                    <div style="font-size: 1.5rem; margin-bottom: 8px; color: var(--color-error);">Signal lost</div>
                     <div style="color: var(--color-text-secondary); margin-top: 4px;">
                         The word was: <span class="text-mono" style="color: var(--color-success);">${this.target}</span>
                     </div>
@@ -330,15 +390,22 @@ export class CipherGame {
 
         const controlGroup = createElement('div', { className: 'flex flex-col gap-4' });
 
-        // Request intercept button
-        if (this.intercepts.length < this.config.maxIntercepts) {
+        // Request intercept button (last action is reserved for a guess)
+        if (this.budgetLeft() > 1) {
             const interceptBtn = createElement('button', {
                 className: 'game-submit',
-                textContent: `REQUEST INTERCEPT (${this.config.maxIntercepts - this.intercepts.length} remaining)`,
+                textContent: 'REQUEST INTERCEPT (−1 action)',
                 style: 'background: var(--color-surface); border: 2px solid var(--color-accent); color: var(--color-accent);'
             });
             interceptBtn.addEventListener('click', () => this.requestIntercept());
             controlGroup.appendChild(interceptBtn);
+        } else {
+            const lastAction = createElement('div', {
+                className: 'text-mono text-xs text-center',
+                style: 'color: var(--color-warning);'
+            });
+            lastAction.textContent = 'LAST ACTION — make it count';
+            controlGroup.appendChild(lastAction);
         }
 
         // Guess section
@@ -346,7 +413,7 @@ export class CipherGame {
             const divider = createElement('div', {
                 style: 'text-align: center; color: var(--color-text-tertiary); font-size: 0.75rem;'
             });
-            divider.textContent = '— OR —';
+            divider.textContent = '— OR GUESS (−1 action, wrong guesses reveal correct positions) —';
             controlGroup.appendChild(divider);
 
             const inputRow = createElement('div', { className: 'flex gap-3' });
@@ -395,7 +462,10 @@ export class CipherGame {
             ? consensus.map(p => p.confidence >= 0.7 ? '🟩' : p.confidence >= 0.4 ? '🟨' : '🟥').join('')
             : '';
 
-        const shareText = `Cipher #${puzzleNumber} 📡\nNoise: ${Math.round(this.config.noiseLevel * 100)}%\nIntercepts: ${this.intercepts.length}/${this.config.maxIntercepts}\n${consensusStr} → ${this.target}\n${this.won ? 'Decoded!' : 'Failed'}`;
+        const guessTrail = this.guesses
+            .map(g => g.greens.map(x => x ? '🟩' : '⬛').join(''))
+            .join('\n');
+        const shareText = `Cipher #${puzzleNumber} 📡\nNoise: ${Math.round(this.config.noiseLevel * 100)}% · ${this.intercepts.length} intercepts, ${this.guesses.length} guesses\n${consensusStr}${guessTrail ? '\n' + guessTrail : ''}\n${this.won ? 'Decoded!' : 'Signal lost'}`;
 
         resultDiv.textContent = shareText;
 
@@ -427,7 +497,7 @@ export class CipherGame {
                         text-align: left;
                     ">
                         <div style="font-family: var(--font-mono); font-weight: 600;">STANDARD</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">30% noise, 2+ corruptions, 6 intercepts</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">30% noise, 2+ corruptions, 7 actions</div>
                     </button>
                     <button class="difficulty-btn ${this.difficulty === 'hard' ? 'active' : ''}" data-difficulty="hard" style="
                         padding: 12px 16px;
@@ -439,7 +509,7 @@ export class CipherGame {
                         text-align: left;
                     ">
                         <div style="font-family: var(--font-mono); font-weight: 600;">HARD</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">40% noise, 3+ corruptions, 5 intercepts</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">40% noise, 3+ corruptions, 6 actions</div>
                     </button>
                 </div>
                 ${hasProgress ? '<p style="margin-top: 12px; font-size: 0.8rem; color: var(--color-warning);">⚠️ Changing difficulty will reset your current game</p>' : ''}
@@ -472,9 +542,9 @@ export class CipherGame {
 
         // Reset game state
         this.intercepts = [];
+        this.guesses = [];
         this.gameOver = false;
         this.won = false;
-        this.finalGuess = null;
 
         // Reinitialize with same seed (same daily puzzle, different difficulty)
         this.init();

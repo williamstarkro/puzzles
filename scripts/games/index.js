@@ -4,18 +4,28 @@
  */
 
 import { EditGame } from './edit.js?v=5';
-import { CipherGame } from './cipher.js';
+import { CipherGame } from './cipher.js?v=2';
 import { PartitionGame } from './partition.js';
-// import { RecurrenceGame } from './recurrence.js';  // TODO: Disabled - needs improvement
+// import { RecurrenceGame } from './recurrence.js';  // Disabled - fatal flaw: sequence type classification is a fixed algorithm
 import { SubsetGame } from './subset.js';
 // TODO: Network game disabled - force-directed layout needs work to properly
 // fill the container width. The nodes cluster instead of spreading out.
 // import { NetworkGame } from './network.js';
-import { OrbitGame } from './orbit.js';
-import { CascadeGame } from './cascade.js';
+import { OrbitGame } from './orbit.js?v=2';
+import { FossilGame } from './fossil.js';
+import { TriadGame } from './triad.js';
+import { FlipGame } from './flip.js';
+import { CensusGame } from './census.js';
+// import { CascadeGame } from './cascade.js';
+// Disabled - fatal flaw: a single de Bruijn initial condition (e.g. 00010111...)
+// contains all 8 neighborhoods, so one fixed query identifies any rule.
+// Systematically solvable; needs a redesign (e.g. constrained ICs or noisy cells).
 // import { ConvexGame } from './convex.js';  // TODO: Disabled - needs better touch/mobile support
-// import { BijectionGame } from './bijection.js';  // TODO: Disabled - needs improvement
-import { DerivativeGame } from './derivative.js';
+// import { BijectionGame } from './bijection.js';  // Disabled - fatal flaw: constraint propagation is target-independent
+// import { DerivativeGame } from './derivative.js';
+// Disabled - fatal flaw: querying f(0), f(1), f(-1), f(2) and interpolating
+// always wins within budget. A fixed flowchart; needs a redesign
+// (e.g. sign-only feedback or noisy evaluations).
 
 // Game definitions with metadata
 export const GAMES = [
@@ -65,13 +75,40 @@ export const GAMES = [
         game: OrbitGame
     },
     {
-        id: 'cascade',
-        name: 'CASCADE',
-        tagline: 'The Cellular Automaton Game',
-        description: 'Deduce which cellular automaton rule governs a 1D grid by observing how different initial conditions evolve.',
-        category: 'combinatorics',
+        id: 'fossil',
+        name: 'FOSSIL',
+        tagline: 'The Excavation Game',
+        description: 'A fossil is buried in the grid. Probe for distance, scan rows for counts, then stake your claim on its exact cells.',
+        category: 'geometry',
         difficulty: 'Medium',
-        game: CascadeGame
+        game: FossilGame
+    },
+    {
+        id: 'triad',
+        name: 'TRIAD',
+        tagline: 'The Median Logic Game',
+        description: 'Reconstruct a hidden ranking by querying trios of items—each query reveals only the median of the three.',
+        category: 'combinatorics',
+        difficulty: 'Medium-High',
+        game: TriadGame
+    },
+    {
+        id: 'flip',
+        name: 'FLIP',
+        tagline: 'The Triangulation Game',
+        description: 'A hidden triangulation of a polygon—one of Catalan-many. Query diagonals to learn crossing counts; zero means you found one.',
+        category: 'geometry',
+        difficulty: 'Medium-High',
+        game: FlipGame
+    },
+    {
+        id: 'census',
+        name: 'CENSUS',
+        tagline: 'The Graph Reconstruction Game',
+        description: 'Rebuild a hidden graph you can never see, buying only global subgraph counts: edges, triangles, claws, cycles.',
+        category: 'graph-theory',
+        difficulty: 'High',
+        game: CensusGame
     },
     {
         id: 'subset',
@@ -109,15 +146,15 @@ export const GAMES = [
     //     difficulty: 'Medium',
     //     game: BijectionGame
     // },
-    {
-        id: 'derivative',
-        name: 'DERIVATIVE',
-        tagline: 'The Polynomial Interrogation Game',
-        description: 'Identify a hidden polynomial by querying its value or derivatives at chosen points, with derivatives costing more.',
-        category: 'algebra',
-        difficulty: 'Medium-High',
-        game: DerivativeGame
-    }
+    // {
+    //     id: 'derivative',
+    //     name: 'DERIVATIVE',
+    //     tagline: 'The Polynomial Interrogation Game',
+    //     description: 'Identify a hidden polynomial by querying its value or derivatives at chosen points, with derivatives costing more.',
+    //     category: 'algebra',
+    //     difficulty: 'Medium-High',
+    //     game: DerivativeGame
+    // }
 ];
 
 // Get games by category

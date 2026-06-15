@@ -6,8 +6,8 @@
 import { gameEngine } from './game-engine.js';
 import { Storage } from './utils/storage.js';
 import { createElement, formatPercent } from './utils/ui-helpers.js';
-import { REFERENCE_GUIDES } from './utils/reference-guides.js?v=3';
-import { GAMES, getGamesByCategory, getAvailableGames } from './games/index.js?v=5';
+import { REFERENCE_GUIDES } from './utils/reference-guides.js?v=4';
+import { GAMES, getGamesByCategory, getAvailableGames } from './games/index.js?v=6';
 
 class App {
     constructor() {
@@ -478,6 +478,26 @@ class App {
                 title: 'Integer Partitions',
                 content: `<p>A partition expresses a number as a sum. For example, 7 = 4+2+1 is the partition [4,2,1].</p>
                 <p>Your guess gets Wordle feedback - green means right part in right position.</p>`
+            },
+            fossil: {
+                title: 'Dig Smart',
+                content: `<p>A connected fossil is buried in the grid. Probes reveal the distance to its nearest cell; row/column scans count its cells.</p>
+                <p>Claims are free but scarce — when you stake one, you learn how many cells you got right.</p>`
+            },
+            triad: {
+                title: 'Median Logic',
+                content: `<p>Query any three items and learn which one ranks in the middle. You know the #1 item from the start.</p>
+                <p>Tip: a query including the #1 item tells you which of the other two ranks higher.</p>`
+            },
+            flip: {
+                title: 'Maximal Means Knowable',
+                content: `<p>A triangulation is a maximal non-crossing set of diagonals — so a diagonal that crosses 0 hidden diagonals must BE one of them.</p>
+                <p>High crossing counts are information too: they tell you how much structure passes through that region.</p>`
+            },
+            census: {
+                title: 'Counting Is Seeing',
+                content: `<p>You never see the hidden graph — only pattern counts you choose to buy. Edges and cherries pin down the degree sequence; triangles and 4-cycles reveal shape.</p>
+                <p>You win if your reconstruction is isomorphic to the target. Labels don't matter.</p>`
             },
             balance: {
                 title: 'Balance Scale Logic',
